@@ -60,6 +60,20 @@ and `device.features.available_features()`. It also exposes parsed
 `device_type`, `permissions`, `model`, and `model_name` properties; the
 original API response remains available as `device.raw_data`.
 
+## CLI
+
+The repository includes a simple verification script for checking access to the
+Nubia Care API from a source checkout:
+
+```console
+PYTHONPATH=src .venv/bin/python scripts/nubia_care_cli.py
+```
+
+The script prompts for a Nubia Care login and password, then prints a JSON
+summary for each related device, including the latest device metadata and
+location information. It is intended for local validation and troubleshooting,
+and it is not part of the installed library API.
+
 ## Development
 
 Run the test suite with:
