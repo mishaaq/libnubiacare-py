@@ -60,8 +60,10 @@ type signatures for the supported options.
 
 `NubiaDevice` exposes device capabilities through `device.features.supports()`
 and `device.features.available_features()`. It also exposes parsed
-`device_type`, `permissions`, `model`, and `model_name` properties; the
-original API response remains available as `device.raw_data`.
+`battery_level`, `device_type`, `permissions`, `model`, and `model_name`
+properties; `battery_level` reads the `percent` value from the API's nested
+`battery` object and is `None` when that value is unavailable. The original API
+response remains available as `device.raw_data`.
 
 ## CLI
 

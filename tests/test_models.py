@@ -8,6 +8,26 @@ from nubia_care import DeviceFeatures, NubiaDevice
 
 
 class NubiaDeviceTests(unittest.TestCase):
+    def test_battery_level_reads_nested_battery_percent(self) -> None:
+        device = NubiaDevice(
+            {
+                "imei": "device-1",
+                "battery": {"updateTime": 1793651007907, "percent": 76},
+            }
+        )
+
+        self.assertEqual(device.battery_level, 76)
+
+    def test_battery_level_is_none_when_missing_or_invalid(self) -> None:
+        for raw_data in (
+            {"imei": "device-1"},
+            {"imei": "device-1", "battery": None},
+            {"imei": "device-1", "battery": {"percent": "76"}},
+            {"imei": "device-1", "battery": {"percent": True}},
+        ):
+            with self.subTest(raw_data=raw_data):
+                self.assertIsNone(NubiaDevice(raw_data).battery_level)
+
     def test_parses_device_properties(self) -> None:
         device = NubiaDevice(
             {

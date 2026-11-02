@@ -90,6 +90,17 @@ class NubiaDevice:
         return self.raw_data.get("name")
 
     @property
+    def battery_level(self) -> int | None:
+        """Return the current battery percentage, if reported."""
+        battery = self.raw_data.get("battery")
+        if not isinstance(battery, Mapping):
+            return None
+        percent = battery.get("percent")
+        if isinstance(percent, bool) or not isinstance(percent, int):
+            return None
+        return percent
+
+    @property
     def location(self) -> NubiaLocation | None:
         """Return the most recent location, if one has been reported."""
         location = self.raw_data.get("lastLocation")
