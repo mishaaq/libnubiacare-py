@@ -20,6 +20,7 @@ class _Auth:
         session: NubiaSession | None = None,
         auth_token: str | None = None,
         json_body: dict[str, object] | None = None,
+        form_body: dict[str, object] | None = None,
     ) -> dict[str, object]:
         self.calls.append(
             (
@@ -29,6 +30,7 @@ class _Auth:
                     "session": session,
                     "auth_token": auth_token,
                     "json_body": json_body,
+                    "form_body": form_body,
                 },
             )
         )
@@ -112,6 +114,23 @@ class APITests(unittest.IsolatedAsyncioTestCase):
             {"deviceId": "device-1", "token": "token"},
         )
         self.assertEqual(auth.calls[0][2]["auth_token"], "token")
+
+    async def test_request_last_location_uses_device_endpoint(self) -> None:
+        auth = _Auth()
+        api = NubiaAPI(auth)  # type: ignore[arg-type]
+        session = NubiaSession(openid="open-id", accesstoken="token")
+
+        await api.async_request_last_location(session, "device-1")
+
+        self.assertEqual(auth.calls[0][0], "POST")
+        self.assertEqual(
+            auth.calls[0][1],
+            "getway/devices/device-1/location/last",
+        )
+        self.assertEqual(
+            auth.calls[0][2]["form_body"],
+            {"openid": "open-id", "accesstoken": "token", "token": "token"},
+        )
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ import json
 import unittest
 from collections.abc import Callable
 from typing import Any
+from urllib.parse import parse_qs
 from unittest.mock import patch
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -199,6 +200,56 @@ class AuthTests(unittest.IsolatedAsyncioTestCase):
             set(http_session.request_kwargs["params"]),
             {"sign", "timestamp", "nonce", "appKey"},
         )
+
+    async def test_form_request_sends_encoded_body_and_signed_session(self) -> None:
+        http_session = _FakeSession({"code": 0, "data": None})
+        auth = _make_auth(http_session)
+
+        with (
+            patch("nubia_care.auth.time.time_ns", return_value=1_000_000),
+            patch("nubia_care.auth.secrets.token_hex", return_value="a" * 32),
+        ):
+            await auth.async_request(
+                "POST",
+                "getway/devices/device-1/location/last",
+                session=NubiaSession(openid="open-id", accesstoken="access-token"),
+                form_body={
+                    "openid": "open-id",
+                    "accesstoken": "access-token",
+                    "token": "access-token",
+                },
+            )
+
+        assert http_session.request_kwargs is not None
+        self.assertEqual(
+            http_session.request_kwargs["headers"]["Content-Type"],
+            "application/x-www-form-urlencoded",
+        )
+        self.assertEqual(
+            parse_qs(http_session.request_kwargs["data"].decode()),
+            {
+                "openid": ["open-id"],
+                "accesstoken": ["access-token"],
+                "token": ["access-token"],
+            },
+        )
+        signed = {
+            "openid": "open-id",
+            "accesstoken": "access-token",
+            "token": "access-token",
+            "timestamp": "1",
+            "nonce": "a" * 32,
+            "appKey": "U7yJRy5eO0DKTlNVrnx4z5ICm5y16a4S",
+        }
+        preimage = "".join(f"{key}={signed[key]}&" for key in sorted(signed))
+        expected_sign = hashlib.sha256(
+            (preimage + "fR1gX2AEiYxflz8sVsLFzfwTOfk8NzBu").encode()
+        ).hexdigest()
+        self.assertEqual(
+            set(http_session.request_kwargs["params"]),
+            {"sign", "timestamp", "nonce", "appKey"},
+        )
+        self.assertEqual(http_session.request_kwargs["params"]["sign"], expected_sign)
 
     def test_session_rejects_malformed_persisted_tokens(self) -> None:
         with self.assertRaisesRegex(ValueError, "openid must be a non-empty string"):

@@ -10,7 +10,7 @@ import time
 from collections.abc import Mapping
 from decimal import Decimal
 from typing import Any
-from urllib.parse import urljoin
+from urllib.parse import urlencode, urljoin
 
 import aiohttp
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -76,9 +76,13 @@ class NubiaAuth:
         auth_token: str | None = None,
         params: Mapping[str, Any] | None = None,
         json_body: Mapping[str, Any] | None = None,
+        form_body: Mapping[str, Any] | None = None,
         headers: Mapping[str, str] | None = None,
     ) -> dict[str, Any]:
         """Send a signed request and return the JSON response body."""
+        if json_body is not None and form_body is not None:
+            raise ValueError("request body cannot be both JSON and form encoded")
+
         request_params = dict(params or {})
         request_headers = {
             "Accept": "application/json",
@@ -101,6 +105,14 @@ class NubiaAuth:
             signed_query = {key: signed[key] for key in _AUTH_QUERY_KEYS}
             body_bytes = json.dumps(body, separators=(",", ":")).encode("utf-8")
             request_headers.setdefault("Content-Type", "application/json")
+        elif form_body is not None:
+            body = dict(form_body)
+            signed = self._signed_parameters({**request_params, **body})
+            signed_query = {key: signed[key] for key in _AUTH_QUERY_KEYS}
+            body_bytes = urlencode(body).encode("utf-8")
+            request_headers.setdefault(
+                "Content-Type", "application/x-www-form-urlencoded"
+            )
         else:
             signed = self._signed_parameters(request_params)
             signed_query = signed

@@ -70,6 +70,21 @@ class NubiaAPI:
             raise NubiaProtocolError("device detail response is missing imei")
         return NubiaDevice(data)
 
+    async def async_request_last_location(
+        self, session: NubiaSession, device_id: str
+    ) -> None:
+        """Ask a device to report its latest location."""
+        await self._auth.async_request(
+            "POST",
+            f"getway/devices/{device_id}/location/last",
+            session=session,
+            form_body={
+                "openid": session.openid,
+                "accesstoken": session.accesstoken,
+                "token": session.accesstoken,
+            },
+        )
+
     async def async_get_device_firmware(
         self, session: NubiaSession, device_id: str
     ) -> NubiaFirmware:
