@@ -81,10 +81,20 @@ and it is not part of the installed library API.
 
 ## Development
 
-Run the test suite with:
+Create and activate a virtual environment, then install the project in editable
+mode from the repository root. This installs the dependencies and makes the
+`src/nubia_care` package importable without setting `PYTHONPATH`:
 
 ```console
-PYTHONPATH=src .venv/bin/python -m unittest discover -s tests
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .
+```
+
+Run the test suite:
+
+```console
+python -m unittest discover -s tests
 ```
 
 Releases are published to PyPI from GitHub Releases.
