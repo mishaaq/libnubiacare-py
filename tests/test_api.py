@@ -5,7 +5,13 @@ from __future__ import annotations
 import unittest
 from decimal import Decimal
 
-from nubia_care import NubiaAPI, NubiaDevice, NubiaFirmware, NubiaSession
+from nubia_care import (
+    NubiaAPI,
+    NubiaDevice,
+    NubiaDeviceState,
+    NubiaFirmware,
+    NubiaSession,
+)
 
 
 class _Auth:
@@ -48,6 +54,7 @@ class _Auth:
             return {
                 "imei": path.rsplit("/", 1)[-1],
                 "name": "Watch",
+                "battery": {"updateTime": 123, "percent": 57},
                 "lastLocation": {
                     "lat": "51.5",
                     "lon": "-0.1",
@@ -81,7 +88,9 @@ class APITests(unittest.IsolatedAsyncioTestCase):
 
         device = await api.async_get_device(session, "device-1")
 
+        self.assertIsInstance(device, NubiaDeviceState)
         self.assertEqual(device.id, "device-1")
+        self.assertEqual(device.battery_level, 57)
         self.assertEqual(auth.calls[0][1], "getway/devices/device-1")
         self.assertIsNotNone(device.location)
         assert device.location is not None

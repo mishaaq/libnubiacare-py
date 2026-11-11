@@ -4,14 +4,43 @@ from __future__ import annotations
 
 import unittest
 
-from nubia_care import DeviceFeatures, NubiaDevice
+from nubia_care import (
+    DeviceBattery,
+    DeviceFeatures,
+    DeviceImei,
+    DeviceLocation,
+    DeviceModel,
+    NubiaDevice,
+    NubiaDeviceState,
+)
 
 
 class NubiaDeviceTests(unittest.TestCase):
+    def test_device_models_inherit_battery_and_location_properties(self) -> None:
+        raw_data = {
+            "imei": "device-1",
+            "model": "EW2301",
+            "battery": {"percent": 76},
+            "lastLocation": {"lat": "51.5", "lon": "-0.1"},
+        }
+
+        for device in (NubiaDevice(raw_data), NubiaDeviceState(raw_data)):
+            with self.subTest(device=device):
+                self.assertIsInstance(device, DeviceImei)
+                self.assertIsInstance(device, DeviceModel)
+                self.assertIsInstance(device, DeviceBattery)
+                self.assertIsInstance(device, DeviceLocation)
+                self.assertEqual(device.id, "device-1")
+                self.assertEqual(device.imei, "device-1")
+                self.assertEqual(device.model, "EW2301")
+                self.assertEqual(device.battery_level, 76)
+                self.assertIsNotNone(device.location)
+
     def test_battery_level_reads_nested_battery_percent(self) -> None:
         device = NubiaDevice(
             {
                 "imei": "device-1",
+                "model": "EW2301",
                 "battery": {"updateTime": 1793651007907, "percent": 76},
             }
         )
@@ -29,15 +58,15 @@ class NubiaDeviceTests(unittest.TestCase):
                 self.assertIsNone(NubiaDevice(raw_data).battery_level)
 
     def test_parses_device_properties(self) -> None:
-        device = NubiaDevice(
-            {
-                "imei": "device-1",
-                "deviceType": 0,
-                "permissions": "basic,positioning,management,location_y",
-                "model": "EW2301",
-                "modeType": "ZTE Watch K1 Pro",
-            }
-        )
+        raw_data = {
+            "imei": "device-1",
+            "deviceType": 0,
+            "permissions": "basic,positioning,management,location_y",
+            "model": "EW2301",
+            "modeType": "ZTE Watch K1 Pro",
+        }
+        device = NubiaDevice(raw_data)
+        device_state = NubiaDeviceState(raw_data)
 
         self.assertEqual(device.device_type, 0)
         self.assertEqual(
@@ -45,7 +74,8 @@ class NubiaDeviceTests(unittest.TestCase):
             ("basic", "positioning", "management", "location_y"),
         )
         self.assertEqual(device.model, "EW2301")
-        self.assertEqual(device.model_name, "ZTE Watch K1 Pro")
+        self.assertFalse(hasattr(device, "model_name"))
+        self.assertEqual(device_state.model_name, "ZTE Watch K1 Pro")
 
     def test_features_query_one_or_all_supported_features(self) -> None:
         device = NubiaDevice(

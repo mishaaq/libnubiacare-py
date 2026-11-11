@@ -48,8 +48,11 @@ asyncio.run(main())
 `NubiaAuth` owns the built-in request signing and HTTP handling, while the
 caller provides the shared `aiohttp.ClientSession` and keeps the returned
 `NubiaSession` in their persistence layer. The API provides typed device and
-location views while retaining each response in `raw_data`. Use
-`NubiaDevice.id` as the identifier for device-details and firmware requests.
+location views while retaining each response in `raw_data`.
+`NubiaAPI.async_get_device()` returns a `NubiaDeviceState` containing the
+device ID, current battery level, latest location, and other device details.
+Use `NubiaDevice.id` as the identifier for device-details and firmware
+requests.
 JSON decimal numbers are decoded as `Decimal`, so numeric latitude and
 longitude values retain their reported precision; coordinate values returned
 as strings remain strings.

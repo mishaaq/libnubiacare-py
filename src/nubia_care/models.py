@@ -69,25 +69,67 @@ class NubiaLocation:
 
 
 @dataclass(frozen=True, slots=True)
-class NubiaDevice:
-    """A watch or other device returned by the related-device endpoint."""
+class DeviceFeatures:
+    """Feature support flags reported for a Nubia device."""
+
+    raw_data: Mapping[str, Any]
+
+    def supports(self, feature: str) -> bool:
+        """Return whether a named feature is supported by the device.
+
+        Feature names may be passed with or without the API's ``support_``
+        prefix. Raises ``KeyError`` when the API did not report that feature.
+        """
+        candidate = feature.removeprefix(_FEATURE_PREFIX)
+        lookup = feature if feature.startswith(_FEATURE_PREFIX) else f"{_FEATURE_PREFIX}{candidate}"
+        if lookup not in self.raw_data and candidate not in self.raw_data:
+            raise KeyError(f"unknown device feature: {feature}")
+        value = self.raw_data.get(lookup)
+        if value is None:
+            value = self.raw_data.get(candidate)
+        return value is True or value == 1 or value == "1"
+
+    def available_features(self) -> tuple[str, ...]:
+        """Return the names of all features supported by this device."""
+        return tuple(
+            name.removeprefix(_FEATURE_PREFIX)
+            for name in self.raw_data
+            if self.supports(name)
+        )
+
+
+class DeviceImei:
+    """Expose the device identifier in a device response."""
+
+    __slots__ = ()
 
     raw_data: Mapping[str, Any]
 
     @property
-    def id(self) -> str | None:
-        """Return the API device ID used by device-specific endpoints."""
-        return self.imei
-
-    @property
     def imei(self) -> str | None:
-        """Return the device's imei by the related-device API."""
+        """Return the device's IMEI."""
         return self.raw_data.get("imei")
 
+
+class DeviceModel:
+    """Expose the device model in a device response."""
+
+    __slots__ = ()
+
+    raw_data: Mapping[str, Any]
+
     @property
-    def name(self) -> str | None:
-        """Return the API-provided device name."""
-        return self.raw_data.get("name")
+    def model(self) -> str | None:
+        """Return the device model code."""
+        return self.raw_data.get("model")
+
+
+class DeviceBattery:
+    """Expose the battery status in a device response."""
+
+    __slots__ = ()
+
+    raw_data: Mapping[str, Any]
 
     @property
     def battery_level(self) -> int | None:
@@ -100,6 +142,14 @@ class NubiaDevice:
             return None
         return percent
 
+
+class DeviceLocation:
+    """Expose the latest location in a device response."""
+
+    __slots__ = ()
+
+    raw_data: Mapping[str, Any]
+
     @property
     def location(self) -> NubiaLocation | None:
         """Return the most recent location, if one has been reported."""
@@ -107,6 +157,23 @@ class NubiaDevice:
         if not isinstance(location, Mapping):
             return None
         return NubiaLocation(location)
+
+
+@dataclass(frozen=True, slots=True)
+class NubiaDevice(DeviceImei, DeviceModel, DeviceBattery, DeviceLocation):
+    """A watch or other device returned by the related-device endpoint."""
+
+    raw_data: Mapping[str, Any]
+
+    @property
+    def id(self) -> str | None:
+        """Return the API device ID."""
+        return self.imei
+
+    @property
+    def name(self) -> str | None:
+        """Return the API-provided device name."""
+        return self.raw_data.get("name")
 
     @property
     def features(self) -> DeviceFeatures:
@@ -135,45 +202,22 @@ class NubiaDevice:
             if permission.strip()
         )
 
+
+@dataclass(frozen=True, slots=True)
+class NubiaDeviceState(DeviceImei, DeviceModel, DeviceBattery, DeviceLocation):
+    """Current state reported for a device."""
+
+    raw_data: Mapping[str, Any]
+
     @property
-    def model(self) -> str | None:
-        """Return the device model code."""
-        return self.raw_data.get("model")
+    def id(self) -> str | None:
+        """Return the API device ID."""
+        return self.imei
 
     @property
     def model_name(self) -> str | None:
         """Return the human-readable device model name."""
         return self.raw_data.get("modeType")
-
-
-@dataclass(frozen=True, slots=True)
-class DeviceFeatures:
-    """Feature support flags reported for a Nubia device."""
-
-    raw_data: Mapping[str, Any]
-
-    def supports(self, feature: str) -> bool:
-        """Return whether a named feature is supported by the device.
-
-        Feature names may be passed with or without the API's ``support_``
-        prefix. Raises ``KeyError`` when the API did not report that feature.
-        """
-        candidate = feature.removeprefix(_FEATURE_PREFIX)
-        lookup = feature if feature.startswith(_FEATURE_PREFIX) else f"{_FEATURE_PREFIX}{candidate}"
-        if lookup not in self.raw_data and candidate not in self.raw_data:
-            raise KeyError(f"unknown device feature: {feature}")
-        value = self.raw_data.get(lookup)
-        if value is None:
-            value = self.raw_data.get(candidate)
-        return value is True or value == 1 or value == "1"
-
-    def available_features(self) -> tuple[str, ...]:
-        """Return the names of all features supported by this device."""
-        return tuple(
-            name.removeprefix(_FEATURE_PREFIX)
-            for name in self.raw_data
-            if self.supports(name)
-        )
 
 
 @dataclass(frozen=True, slots=True)

@@ -6,7 +6,7 @@ from collections.abc import Mapping
 
 from .auth import NubiaAuth
 from .exceptions import NubiaApiError, NubiaDeviceNotFoundError, NubiaProtocolError
-from .models import NubiaDevice, NubiaFirmware, NubiaSession
+from .models import NubiaDevice, NubiaDeviceState, NubiaFirmware, NubiaSession
 
 
 class NubiaAPI:
@@ -48,7 +48,7 @@ class NubiaAPI:
 
     async def async_get_device(
         self, session: NubiaSession, device_id: str
-    ) -> NubiaDevice:
+    ) -> NubiaDeviceState:
         """Return current details for one device by its API device ID."""
         try:
             payload = await self._auth.async_request(
@@ -68,7 +68,7 @@ class NubiaAPI:
             raise NubiaProtocolError("device detail response is not an object")
         if not isinstance(data.get("imei"), str):
             raise NubiaProtocolError("device detail response is missing imei")
-        return NubiaDevice(data)
+        return NubiaDeviceState(data)
 
     async def async_request_last_location(
         self, session: NubiaSession, device_id: str
