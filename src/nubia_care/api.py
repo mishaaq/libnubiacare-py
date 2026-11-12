@@ -16,9 +16,7 @@ class NubiaAPI:
         """Initialize the API resource facade with a NubiaAuth instance."""
         self._auth = auth
 
-    async def async_get_devices(
-        self, session: NubiaSession
-    ) -> list[NubiaDevice]:
+    async def async_get_devices(self, session: NubiaSession) -> list[NubiaDevice]:
         """Return the account's related devices."""
         payload = await self._auth.async_request(
             "GET",
@@ -102,3 +100,18 @@ class NubiaAPI:
         if not isinstance(data, Mapping):
             raise NubiaProtocolError("firmware response is missing its data object")
         return NubiaFirmware(data)
+
+    async def async_install_device_firmware(
+        self, session: NubiaSession, device_id: str
+    ) -> None:
+        """Ask a device to install its available firmware update."""
+        await self._auth.async_request(
+            "POST",
+            "api/device/save/systemconfig",
+            auth_token=session.accesstoken,
+            json_body={
+                "deviceId": device_id,
+                "type": 11,
+                "token": session.accesstoken,
+            },
+        )

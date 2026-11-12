@@ -141,6 +141,21 @@ class APITests(unittest.IsolatedAsyncioTestCase):
             {"openid": "open-id", "accesstoken": "token", "token": "token"},
         )
 
+    async def test_install_device_firmware_uses_system_config_endpoint(self) -> None:
+        auth = _Auth()
+        api = NubiaAPI(auth)  # type: ignore[arg-type]
+        session = NubiaSession(openid="open-id", accesstoken="token")
+
+        await api.async_install_device_firmware(session, "device-1")
+
+        self.assertEqual(auth.calls[0][0], "POST")
+        self.assertEqual(auth.calls[0][1], "api/device/save/systemconfig")
+        self.assertEqual(
+            auth.calls[0][2]["json_body"],
+            {"deviceId": "device-1", "type": 11, "token": "token"},
+        )
+        self.assertEqual(auth.calls[0][2]["auth_token"], "token")
+
 
 if __name__ == "__main__":
     unittest.main()

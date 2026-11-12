@@ -52,7 +52,9 @@ location views while retaining each response in `raw_data`.
 `NubiaAPI.async_get_device()` returns a `NubiaDeviceState` containing the
 device ID, current battery level, latest location, and other device details.
 Use `NubiaDevice.id` as the identifier for device-details and firmware
-requests.
+requests. `NubiaAPI.async_install_device_firmware(session, device_id)` asks a
+device to install its available firmware update; the API does not expose
+installation progress.
 JSON decimal numbers are decoded as `Decimal`, so numeric latitude and
 longitude values retain their reported precision; coordinate values returned
 as strings remain strings.
