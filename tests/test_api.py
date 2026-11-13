@@ -10,6 +10,8 @@ from nubia_care import (
     NubiaDevice,
     NubiaDeviceState,
     NubiaFirmware,
+    NubiaMessageTooLongError,
+    NubiaSentMessage,
     NubiaSession,
 )
 
@@ -17,6 +19,10 @@ from nubia_care import (
 class _Auth:
     def __init__(self) -> None:
         self.calls: list[tuple[str, str, dict[str, object]]] = []
+        self.message_response: dict[str, object] = {
+            "id": "message-1",
+            "content": "Hello!",
+        }
 
     async def async_request(
         self,
@@ -50,6 +56,8 @@ class _Auth:
                     "deviceFirmware": "1.2.3",
                 },
             }
+        if path.startswith("getway/single/"):
+            return self.message_response
         if path.startswith("getway/devices/"):
             return {
                 "imei": path.rsplit("/", 1)[-1],
@@ -140,6 +148,69 @@ class APITests(unittest.IsolatedAsyncioTestCase):
             auth.calls[0][2]["form_body"],
             {"openid": "open-id", "accesstoken": "token", "token": "token"},
         )
+
+    async def test_send_text_message_uses_single_device_endpoint(self) -> None:
+        auth = _Auth()
+        api = NubiaAPI(auth)  # type: ignore[arg-type]
+        session = NubiaSession(openid="open-id", accesstoken="token")
+
+        response = await api.async_send_text_message(session, "device-1", "Hello!")
+
+        self.assertIsInstance(response, NubiaSentMessage)
+        self.assertEqual(response.id, "message-1")
+        self.assertEqual(response.content, "Hello!")
+        self.assertEqual(response.raw_data, {"id": "message-1", "content": "Hello!"})
+        self.assertEqual(auth.calls[0][0], "POST")
+        self.assertEqual(auth.calls[0][1], "getway/single/device-1/message")
+        self.assertEqual(
+            auth.calls[0][2]["json_body"],
+            {
+                "accesstoken": "token",
+                "content": "Hello!",
+                "duration": 0.0,
+                "openid": "open-id",
+                "type": 1,
+                "token": "token",
+            },
+        )
+        self.assertEqual(auth.calls[0][2]["auth_token"], "token")
+
+    async def test_send_text_message_allows_64_utf16_code_units(self) -> None:
+        auth = _Auth()
+        api = NubiaAPI(auth)  # type: ignore[arg-type]
+        content = "a" * 62 + "😀"
+
+        await api.async_send_text_message(
+            NubiaSession(openid="open-id", accesstoken="token"),
+            "device-1",
+            content,
+        )
+
+        self.assertEqual(auth.calls[0][2]["json_body"], {
+            "accesstoken": "token",
+            "content": content,
+            "duration": 0.0,
+            "openid": "open-id",
+            "type": 1,
+            "token": "token",
+        })
+
+    async def test_send_text_message_rejects_more_than_64_utf16_code_units(
+        self,
+    ) -> None:
+        auth = _Auth()
+        api = NubiaAPI(auth)  # type: ignore[arg-type]
+        content = "a" * 63 + "😀"
+
+        with self.assertRaises(NubiaMessageTooLongError) as err:
+            await api.async_send_text_message(
+                NubiaSession(openid="open-id", accesstoken="token"),
+                "device-1",
+                content,
+            )
+
+        self.assertEqual(err.exception.max_length, 64)
+        self.assertEqual(auth.calls, [])
 
     async def test_install_device_firmware_uses_system_config_endpoint(self) -> None:
         auth = _Auth()

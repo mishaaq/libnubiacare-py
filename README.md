@@ -55,6 +55,10 @@ Use `NubiaDevice.id` as the identifier for device-details and firmware
 requests. `NubiaAPI.async_install_device_firmware(session, device_id)` asks a
 device to install its available firmware update; the API does not expose
 installation progress.
+Use `NubiaAPI.async_send_text_message(session, device_id, content)` to send a
+text message to a device and receive a `NubiaSentMessage` with `id` and `content`
+properties. Message content is limited to 64 UTF-16 code units, so emoji count
+as two.
 JSON decimal numbers are decoded as `Decimal`, so numeric latitude and
 longitude values retain their reported precision; coordinate values returned
 as strings remain strings.

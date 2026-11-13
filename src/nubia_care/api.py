@@ -5,8 +5,21 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from .auth import NubiaAuth
-from .exceptions import NubiaApiError, NubiaDeviceNotFoundError, NubiaProtocolError
-from .models import NubiaDevice, NubiaDeviceState, NubiaFirmware, NubiaSession
+from .exceptions import (
+    NubiaApiError,
+    NubiaDeviceNotFoundError,
+    NubiaMessageTooLongError,
+    NubiaProtocolError,
+)
+from .models import (
+    NubiaDevice,
+    NubiaDeviceState,
+    NubiaFirmware,
+    NubiaSentMessage,
+    NubiaSession,
+)
+
+_MAX_MESSAGE_LENGTH = 64
 
 
 class NubiaAPI:
@@ -83,6 +96,27 @@ class NubiaAPI:
             },
         )
 
+    async def async_send_text_message(
+        self, session: NubiaSession, device_id: str, content: str
+    ) -> NubiaSentMessage:
+        """Send a text message to a device and return the created message."""
+        if _utf16_code_unit_length(content) > _MAX_MESSAGE_LENGTH:
+            raise NubiaMessageTooLongError(_MAX_MESSAGE_LENGTH)
+        payload = await self._auth.async_request(
+            "POST",
+            f"getway/single/{device_id}/message",
+            auth_token=session.accesstoken,
+            json_body={
+                "accesstoken": session.accesstoken,
+                "content": content,
+                "duration": 0.0,
+                "openid": session.openid,
+                "type": 1,
+                "token": session.accesstoken,
+            },
+        )
+        return NubiaSentMessage(payload)
+
     async def async_get_device_firmware(
         self, session: NubiaSession, device_id: str
     ) -> NubiaFirmware:
@@ -115,3 +149,8 @@ class NubiaAPI:
                 "token": session.accesstoken,
             },
         )
+
+
+def _utf16_code_unit_length(value: str) -> int:
+    """Return a string's length in UTF-16 code units."""
+    return len(value.encode("utf-16-le", errors="surrogatepass")) // 2

@@ -8,6 +8,7 @@ from .exceptions import (
     NubiaConnectionError,
     NubiaDeviceNotFoundError,
     NubiaError,
+    NubiaMessageTooLongError,
     NubiaProtocolError,
 )
 from .models import (
@@ -20,6 +21,7 @@ from .models import (
     NubiaDeviceState,
     NubiaFirmware,
     NubiaLocation,
+    NubiaSentMessage,
     NubiaSession,
 )
 
@@ -35,6 +37,8 @@ __all__ = [
     "NubiaError",
     "NubiaFirmware",
     "NubiaLocation",
+    "NubiaMessageTooLongError",
+    "NubiaSentMessage",
     "NubiaProtocolError",
     "NubiaSession",
     "DeviceBattery",

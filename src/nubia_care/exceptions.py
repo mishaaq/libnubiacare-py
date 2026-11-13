@@ -27,3 +27,13 @@ class NubiaDeviceNotFoundError(NubiaApiError):
 
 class NubiaProtocolError(NubiaError):
     """The API response did not match the expected JSON protocol."""
+
+
+class NubiaMessageTooLongError(NubiaError):
+    """The message content exceeds Nubia Care's character limit."""
+
+    def __init__(self, max_length: int) -> None:
+        self.max_length = max_length
+        super().__init__(
+            f"message content exceeds the limit of {max_length} UTF-16 code units"
+        )

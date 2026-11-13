@@ -245,3 +245,20 @@ class NubiaFirmware:
     def device_firmware(self) -> str | None:
         """Return the firmware version currently installed on the device."""
         return self.raw_data.get("deviceFirmware")
+
+
+@dataclass(frozen=True, slots=True)
+class NubiaSentMessage:
+    """A message created for a Nubia Care device."""
+
+    raw_data: Mapping[str, Any]
+
+    @property
+    def id(self) -> str | None:
+        """Return the API message ID."""
+        return self.raw_data.get("id")
+
+    @property
+    def content(self) -> str | None:
+        """Return the API message content."""
+        return self.raw_data.get("content")
