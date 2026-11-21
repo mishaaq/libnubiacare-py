@@ -34,7 +34,7 @@ def format_device_summary(
         location = None
     return {
         "id": details.id,
-        "name": details.name,
+        "name": properties.get("name"),
         "properties": _json_compatible(properties),
         "location": _json_compatible(location),
     }
