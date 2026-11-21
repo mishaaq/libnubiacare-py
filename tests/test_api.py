@@ -8,9 +8,11 @@ from decimal import Decimal
 from nubia_care import (
     NubiaAPI,
     NubiaDevice,
+    NubiaDeviceConfiguration,
     NubiaDeviceState,
     NubiaFirmware,
     NubiaMessageTooLongError,
+    NubiaProtocolError,
     NubiaSentMessage,
     NubiaSession,
 )
@@ -22,6 +24,24 @@ class _Auth:
         self.message_response: dict[str, object] = {
             "id": "message-1",
             "content": "Hello!",
+        }
+        self.configuration_response: dict[str, object] = {
+            "code": 0,
+            "data": {
+                "callWhitelist": 1,
+                "autoAnswer": 2,
+                "locMode": 3,
+                "longLifeMode": 1,
+                "disBan": [{"week": "1000000", "interval": []}],
+                "bootOffStartTime": "06:00",
+                "bootOffEndTime": "22:30",
+                "smsSwitch": 1,
+                "smsReceiveOnlyMember": 2,
+                "positionSwitch": 1,
+                "batterySwitch": 2,
+                "sportsSwitch": 1,
+                "appSwitch": 2,
+            },
         }
 
     async def async_request(
@@ -56,6 +76,8 @@ class _Auth:
                     "deviceFirmware": "1.2.3",
                 },
             }
+        if path == "api/device/query/systemconfig":
+            return self.configuration_response
         if path.startswith("getway/single/"):
             return self.message_response
         if path.startswith("getway/devices/"):
@@ -104,6 +126,49 @@ class APITests(unittest.IsolatedAsyncioTestCase):
         assert device.location is not None
         self.assertEqual(device.location.latitude, "51.5")
         self.assertEqual(device.location.longitude, "-0.1")
+
+    async def test_get_device_configuration_parses_relevant_settings(self) -> None:
+        auth = _Auth()
+        api = NubiaAPI(auth)  # type: ignore[arg-type]
+        session = NubiaSession(openid="open-id", accesstoken="token")
+
+        config = await api.async_get_device_configuration(session, "device-1")
+
+        self.assertIsInstance(config, NubiaDeviceConfiguration)
+        self.assertEqual(auth.calls[0][0], "POST")
+        self.assertEqual(auth.calls[0][1], "api/device/query/systemconfig")
+        self.assertEqual(
+            auth.calls[0][2]["json_body"],
+            {"deviceId": "device-1", "token": "token"},
+        )
+        self.assertEqual(auth.calls[0][2]["auth_token"], "token")
+        self.assertTrue(config.call_whitelist)
+        self.assertFalse(config.auto_answer)
+        self.assertEqual(config.loc_mode, 3)
+        self.assertTrue(config.long_life_mode)
+        self.assertEqual(config.focus_schedule, ({"week": "1000000", "interval": []},))
+        self.assertEqual(config.boot_off_start_time, "06:00")
+        self.assertEqual(config.boot_off_end_time, "22:30")
+        self.assertTrue(config.sms_switch)
+        self.assertFalse(config.sms_receive_only_member)
+        self.assertTrue(config.position_switch)
+        self.assertFalse(config.battery_switch)
+        self.assertTrue(config.sports_switch)
+        self.assertFalse(config.app_switch)
+
+    async def test_get_device_configuration_requires_data_object(self) -> None:
+        auth = _Auth()
+        auth.configuration_response = {"code": 0, "data": None}
+        api = NubiaAPI(auth)  # type: ignore[arg-type]
+
+        with self.assertRaisesRegex(
+            NubiaProtocolError,
+            "device configuration response is missing its data object",
+        ):
+            await api.async_get_device_configuration(
+                NubiaSession(openid="open-id", accesstoken="token"),
+                "device-1",
+            )
 
     def test_device_location_preserves_decimal_precision(self) -> None:
         latitude = Decimal("51.1234567890123456789012345")

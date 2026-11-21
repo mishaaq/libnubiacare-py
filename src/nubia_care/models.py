@@ -221,6 +221,86 @@ class NubiaDeviceState(DeviceImei, DeviceModel, DeviceBattery, DeviceLocation):
 
 
 @dataclass(frozen=True, slots=True)
+class NubiaDeviceConfiguration:
+    """Current configuration reported for a device."""
+
+    raw_data: Mapping[str, Any]
+
+    @property
+    def call_whitelist(self) -> bool | None:
+        """Return whether calls are restricted to contacts."""
+        return _configuration_flag(self.raw_data, "callWhitelist")
+
+    @property
+    def auto_answer(self) -> bool | None:
+        """Return whether calls are answered automatically."""
+        return _configuration_flag(self.raw_data, "autoAnswer")
+
+    @property
+    def loc_mode(self) -> int | None:
+        """Return the device's positioning mode."""
+        value = self.raw_data.get("locMode")
+        if isinstance(value, bool) or not isinstance(value, int):
+            return None
+        return value
+
+    @property
+    def long_life_mode(self) -> bool | None:
+        """Return whether long-life mode is enabled."""
+        return _configuration_flag(self.raw_data, "longLifeMode")
+
+    @property
+    def focus_schedule(self) -> tuple[Mapping[str, Any], ...]:
+        """Return the configured focus-mode schedule."""
+        schedule = self.raw_data.get("disBan")
+        if not isinstance(schedule, list):
+            return ()
+        return tuple(entry for entry in schedule if isinstance(entry, Mapping))
+
+    @property
+    def boot_off_start_time(self) -> str | None:
+        """Return the automatic shutdown time."""
+        value = self.raw_data.get("bootOffStartTime")
+        return value if isinstance(value, str) else None
+
+    @property
+    def boot_off_end_time(self) -> str | None:
+        """Return the automatic boot time."""
+        value = self.raw_data.get("bootOffEndTime")
+        return value if isinstance(value, str) else None
+
+    @property
+    def sms_switch(self) -> bool | None:
+        """Return whether the app can read SMS messages."""
+        return _configuration_flag(self.raw_data, "smsSwitch")
+
+    @property
+    def sms_receive_only_member(self) -> bool | None:
+        """Return whether SMS messages are restricted to contacts."""
+        return _configuration_flag(self.raw_data, "smsReceiveOnlyMember")
+
+    @property
+    def position_switch(self) -> bool | None:
+        """Return whether the app can access device location."""
+        return _configuration_flag(self.raw_data, "positionSwitch")
+
+    @property
+    def battery_switch(self) -> bool | None:
+        """Return whether the app can read the battery level."""
+        return _configuration_flag(self.raw_data, "batterySwitch")
+
+    @property
+    def sports_switch(self) -> bool | None:
+        """Return whether the app can access sports activity information."""
+        return _configuration_flag(self.raw_data, "sportsSwitch")
+
+    @property
+    def app_switch(self) -> bool | None:
+        """Return whether the app can read and manage installed apps."""
+        return _configuration_flag(self.raw_data, "appSwitch")
+
+
+@dataclass(frozen=True, slots=True)
 class NubiaFirmware:
     """Firmware update information returned for a device."""
 
@@ -262,3 +342,14 @@ class NubiaSentMessage:
     def content(self) -> str | None:
         """Return the API message content."""
         return self.raw_data.get("content")
+
+
+def _configuration_flag(data: Mapping[str, Any], key: str) -> bool | None:
+    value = data.get(key)
+    if isinstance(value, bool) or not isinstance(value, int):
+        return None
+    if value == 1:
+        return True
+    if value == 2:
+        return False
+    return None

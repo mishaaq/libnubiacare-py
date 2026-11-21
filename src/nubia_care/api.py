@@ -13,6 +13,7 @@ from .exceptions import (
 )
 from .models import (
     NubiaDevice,
+    NubiaDeviceConfiguration,
     NubiaDeviceState,
     NubiaFirmware,
     NubiaSentMessage,
@@ -80,6 +81,26 @@ class NubiaAPI:
         if not isinstance(data.get("imei"), str):
             raise NubiaProtocolError("device detail response is missing imei")
         return NubiaDeviceState(data)
+
+    async def async_get_device_configuration(
+        self, session: NubiaSession, device_id: str
+    ) -> NubiaDeviceConfiguration:
+        """Return the current configuration for a device."""
+        payload = await self._auth.async_request(
+            "POST",
+            "api/device/query/systemconfig",
+            auth_token=session.accesstoken,
+            json_body={
+                "deviceId": device_id,
+                "token": session.accesstoken,
+            },
+        )
+        data = payload.get("data")
+        if not isinstance(data, Mapping):
+            raise NubiaProtocolError(
+                "device configuration response is missing its data object"
+            )
+        return NubiaDeviceConfiguration(data)
 
     async def async_request_last_location(
         self, session: NubiaSession, device_id: str

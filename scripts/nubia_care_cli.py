@@ -20,14 +20,18 @@ from nubia_care import (  # noqa: E402
     NubiaAPI,
     NubiaAuth,
     NubiaDevice,
+    NubiaDeviceConfiguration,
+    NubiaDeviceState,
     NubiaError,
 )
 
 
 def format_device_summary(
-    related_device: NubiaDevice, details: Any
+    related_device: NubiaDevice,
+    details: NubiaDeviceState,
+    configuration: NubiaDeviceConfiguration,
 ) -> dict[str, Any]:
-    """Combine related-device properties with the latest device details."""
+    """Combine related-device properties, details, and configuration."""
     properties = {**related_device.raw_data, **details.raw_data}
     location = properties.pop("lastLocation", None)
     if not isinstance(location, Mapping):
@@ -37,6 +41,21 @@ def format_device_summary(
         "name": properties.get("name"),
         "properties": _json_compatible(properties),
         "location": _json_compatible(location),
+        "configuration": {
+            "call_whitelist": configuration.call_whitelist,
+            "auto_answer": configuration.auto_answer,
+            "loc_mode": configuration.loc_mode,
+            "long_life_mode": configuration.long_life_mode,
+            "focus_schedule": _json_compatible(configuration.focus_schedule),
+            "boot_off_start_time": configuration.boot_off_start_time,
+            "boot_off_end_time": configuration.boot_off_end_time,
+            "sms_switch": configuration.sms_switch,
+            "sms_receive_only_member": configuration.sms_receive_only_member,
+            "position_switch": configuration.position_switch,
+            "battery_switch": configuration.battery_switch,
+            "sports_switch": configuration.sports_switch,
+            "app_switch": configuration.app_switch,
+        },
     }
 
 
@@ -46,7 +65,7 @@ def _json_compatible(value: Any) -> Any:
         return str(value)
     if isinstance(value, Mapping):
         return {key: _json_compatible(item) for key, item in value.items()}
-    if isinstance(value, list):
+    if isinstance(value, (list, tuple)):
         return [_json_compatible(item) for item in value]
     return value
 
@@ -68,9 +87,12 @@ async def _async_run(login_name: str, password: str) -> None:
                 print("Skipping related device without an ID.", file=sys.stderr)
                 continue
             details = await api.async_get_device(account_session, device_id)
+            configuration = await api.async_get_device_configuration(
+                account_session, device_id
+            )
             print(
                 json.dumps(
-                    format_device_summary(related_device, details),
+                    format_device_summary(related_device, details, configuration),
                     ensure_ascii=False,
                     indent=2,
                 )

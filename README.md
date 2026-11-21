@@ -38,6 +38,9 @@ async def main() -> None:
             firmware = await api.async_get_device_firmware(credentials, device.id)
             print(firmware.device_firmware, firmware.firmware)
 
+            config = await api.async_get_device_configuration(credentials, device.id)
+            print(config.call_whitelist, config.focus_schedule)
+
         # Store credentials.to_dict() in the application's own config entry
         # or credential store. The library does not retain login credentials.
 
@@ -55,6 +58,12 @@ Use `NubiaDevice.id` as the identifier for device-details and firmware
 requests. `NubiaAPI.async_install_device_firmware(session, device_id)` asks a
 device to install its available firmware update; the API does not expose
 installation progress.
+`NubiaAPI.async_get_device_configuration(session, device_id)` returns a
+`NubiaDeviceConfiguration` view of current device settings, including call
+restrictions, positioning mode, focus schedule, automatic power times, and
+SMS/location/battery/sports/app permissions. Settings represented by API values
+`1` and `2` are exposed as `True` and `False`; unavailable or unrecognized
+values are `None`. The original response remains available as `raw_data`.
 Use `NubiaAPI.async_send_text_message(session, device_id, content)` to send a
 text message to a device and receive a `NubiaSentMessage` with `id` and `content`
 properties. Message content is limited to 64 UTF-16 code units, so emoji count
@@ -84,9 +93,9 @@ PYTHONPATH=src .venv/bin/python scripts/nubia_care_cli.py
 ```
 
 The script prompts for a Nubia Care login and password, then prints a JSON
-summary for each related device, including the latest device metadata and
-location information. It is intended for local validation and troubleshooting,
-and it is not part of the installed library API.
+summary for each related device, including the latest device metadata,
+location, and current configuration. It is intended for local validation and
+troubleshooting, and it is not part of the installed library API.
 
 ## Development
 
