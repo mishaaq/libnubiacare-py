@@ -25,7 +25,7 @@ from nubia_care import (  # noqa: E402
 
 
 def format_device_summary(
-    related_device: NubiaDevice, details: NubiaDevice
+    related_device: NubiaDevice, details: Any
 ) -> dict[str, Any]:
     """Combine related-device properties with the latest device details."""
     properties = {**related_device.raw_data, **details.raw_data}
