@@ -21,9 +21,12 @@ from .models import (
     NubiaDeviceConfiguration,
     NubiaDeviceState,
     NubiaFirmware,
+    NubiaFocusScheduleInterval,
+    NubiaFocusScheduleRule,
     NubiaLocation,
     NubiaSentMessage,
     NubiaSession,
+    NubiaWeekMask,
 )
 
 __all__ = [
@@ -38,11 +41,14 @@ __all__ = [
     "NubiaDeviceState",
     "NubiaError",
     "NubiaFirmware",
+    "NubiaFocusScheduleInterval",
+    "NubiaFocusScheduleRule",
     "NubiaLocation",
     "NubiaMessageTooLongError",
     "NubiaSentMessage",
     "NubiaProtocolError",
     "NubiaSession",
+    "NubiaWeekMask",
     "DeviceBattery",
     "DeviceFeatures",
     "DeviceImei",

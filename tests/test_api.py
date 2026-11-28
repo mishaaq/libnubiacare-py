@@ -11,10 +11,13 @@ from nubia_care import (
     NubiaDeviceConfiguration,
     NubiaDeviceState,
     NubiaFirmware,
+    NubiaFocusScheduleInterval,
+    NubiaFocusScheduleRule,
     NubiaMessageTooLongError,
     NubiaProtocolError,
     NubiaSentMessage,
     NubiaSession,
+    NubiaWeekMask,
 )
 
 
@@ -291,6 +294,88 @@ class APITests(unittest.IsolatedAsyncioTestCase):
             {"deviceId": "device-1", "type": 11, "token": "token"},
         )
         self.assertEqual(auth.calls[0][2]["auth_token"], "token")
+
+    async def test_save_device_focus_schedule_uses_type_six(self) -> None:
+        auth = _Auth()
+        api = NubiaAPI(auth)  # type: ignore[arg-type]
+        session = NubiaSession(openid="open-id", accesstoken="token")
+        rule = NubiaFocusScheduleRule(
+            name="Monday",
+            week=NubiaWeekMask("1000000"),
+            status=1,
+            intervals=(
+                NubiaFocusScheduleInterval(
+                    interval_name="am",
+                    begin_time="07:30",
+                    end_time="11:55",
+                    status=1,
+                ),
+                NubiaFocusScheduleInterval(interval_name="pm", status=2),
+            ),
+        )
+
+        await api.async_save_device_focus_schedule(session, "device-1", rule)
+
+        self.assertEqual(auth.calls[0][0], "POST")
+        self.assertEqual(auth.calls[0][1], "api/device/save/systemconfig")
+        self.assertEqual(
+            auth.calls[0][2]["json_body"],
+            {
+                "deviceId": "device-1",
+                "rule": {
+                    "del": 0,
+                    "interval": [
+                        {
+                            "beginTime": "07:30",
+                            "endTime": "11:55",
+                            "intervalName": "am",
+                            "status": 1,
+                        },
+                        {"intervalName": "pm", "status": 2},
+                    ],
+                    "name": "Monday",
+                    "status": 1,
+                    "week": "1000000",
+                },
+                "type": 6,
+                "token": "token",
+            },
+        )
+        self.assertEqual(auth.calls[0][2]["auth_token"], "token")
+
+    async def test_save_device_focus_schedule_includes_rule_id_and_delete_flag(
+        self,
+    ) -> None:
+        auth = _Auth()
+        api = NubiaAPI(auth)  # type: ignore[arg-type]
+        rule = NubiaFocusScheduleRule(
+            name="Weekdays",
+            week=NubiaWeekMask("1111100"),
+            status=2,
+            intervals=(),
+            rule_id="rule-1",
+            delete=1,
+        )
+
+        await api.async_save_device_focus_schedule(
+            NubiaSession(openid="open-id", accesstoken="token"),
+            "device-1",
+            rule,
+        )
+
+        body = auth.calls[0][2]["json_body"]
+        assert isinstance(body, dict)
+        self.assertEqual(
+            body["rule"],
+            {
+                "del": 1,
+                "interval": [],
+                "name": "Weekdays",
+                "ruleId": "rule-1",
+                "status": 2,
+                "week": "1111100",
+            },
+        )
 
 
 if __name__ == "__main__":

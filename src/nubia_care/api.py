@@ -16,6 +16,7 @@ from .models import (
     NubiaDeviceConfiguration,
     NubiaDeviceState,
     NubiaFirmware,
+    NubiaFocusScheduleRule,
     NubiaSentMessage,
     NubiaSession,
 )
@@ -167,6 +168,25 @@ class NubiaAPI:
             json_body={
                 "deviceId": device_id,
                 "type": 11,
+                "token": session.accesstoken,
+            },
+        )
+
+    async def async_save_device_focus_schedule(
+        self,
+        session: NubiaSession,
+        device_id: str,
+        rule: NubiaFocusScheduleRule,
+    ) -> None:
+        """Save a focus-mode schedule rule for a device."""
+        await self._auth.async_request(
+            "POST",
+            "api/device/save/systemconfig",
+            auth_token=session.accesstoken,
+            json_body={
+                "deviceId": device_id,
+                "rule": rule.to_dict(),
+                "type": 6,
                 "token": session.accesstoken,
             },
         )

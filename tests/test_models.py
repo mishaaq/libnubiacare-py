@@ -12,6 +12,7 @@ from nubia_care import (
     DeviceModel,
     NubiaDevice,
     NubiaDeviceState,
+    NubiaWeekMask,
 )
 
 
@@ -105,6 +106,17 @@ class NubiaDeviceTests(unittest.TestCase):
         device = NubiaDevice({"imei": "device-1"})
 
         self.assertEqual(device.permissions, ())
+
+
+class NubiaWeekMaskTests(unittest.TestCase):
+    def test_accepts_seven_binary_digits(self) -> None:
+        self.assertEqual(NubiaWeekMask("1010101"), "1010101")
+
+    def test_rejects_wrong_length_or_non_binary_digits(self) -> None:
+        for value in ("", "101010", "10101010", "1010201"):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, "exactly seven"):
+                    NubiaWeekMask(value)
 
 
 if __name__ == "__main__":

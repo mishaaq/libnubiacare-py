@@ -64,6 +64,13 @@ restrictions, positioning mode, focus schedule, automatic power times, and
 SMS/location/battery/sports/app permissions. Settings represented by API values
 `1` and `2` are exposed as `True` and `False`; unavailable or unrecognized
 values are `None`. The original response remains available as `raw_data`.
+Use `NubiaAPI.async_save_device_focus_schedule(session, device_id, rule)` to
+save one focus-mode schedule rule. Pass a `NubiaFocusScheduleRule` containing
+`NubiaFocusScheduleInterval` entries and a `NubiaWeekMask` for `week` (for
+example, `NubiaWeekMask("1111100")`); invalid week masks raise `ValueError`; mask starts from Monday.
+Use `rule_id` for an existing rule, `status=2` to disable the rule, or
+`delete=1` to remove it. Each interval has its own status, so an interval can
+be disabled without disabling the whole rule.
 Use `NubiaAPI.async_send_text_message(session, device_id, content)` to send a
 text message to a device and receive a `NubiaSentMessage` with `id` and `content`
 properties. Message content is limited to 64 UTF-16 code units, so emoji count

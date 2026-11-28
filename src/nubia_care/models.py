@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 
 _FEATURE_PREFIX = "support_"
@@ -298,6 +298,64 @@ class NubiaDeviceConfiguration:
     def app_switch(self) -> bool | None:
         """Return whether the app can read and manage installed apps."""
         return _configuration_flag(self.raw_data, "appSwitch")
+
+
+@dataclass(frozen=True, slots=True)
+class NubiaFocusScheduleInterval:
+    """One morning or afternoon interval in a focus-mode schedule rule."""
+
+    interval_name: Literal["am", "pm"]
+    status: Literal[1, 2]
+    begin_time: str | None = None
+    end_time: str | None = None
+
+    def to_dict(self) -> dict[str, object]:
+        """Return the interval using the API's field names."""
+        interval: dict[str, object] = {
+            "intervalName": self.interval_name,
+            "status": self.status,
+        }
+        if self.begin_time is not None:
+            interval["beginTime"] = self.begin_time
+        if self.end_time is not None:
+            interval["endTime"] = self.end_time
+        return interval
+
+
+class NubiaWeekMask(str):
+    """A seven-day schedule mask containing only ``0`` and ``1``."""
+
+    __slots__ = ()
+
+    def __new__(cls, value: str) -> NubiaWeekMask:
+        if len(value) != 7 or any(day not in "01" for day in value):
+            raise ValueError("Nubia week mask must contain exactly seven 0 or 1 digits")
+        return super().__new__(cls, value)
+
+
+@dataclass(frozen=True, slots=True)
+class NubiaFocusScheduleRule:
+    """A focus-mode schedule rule that can be saved for a device."""
+
+    name: str
+    week: NubiaWeekMask
+    status: Literal[1, 2]
+    intervals: tuple[NubiaFocusScheduleInterval, ...]
+    rule_id: str | None = None
+    delete: Literal[0, 1] = 0
+
+    def to_dict(self) -> dict[str, object]:
+        """Return the rule using the API's field names."""
+        rule: dict[str, object] = {
+            "del": self.delete,
+            "interval": [interval.to_dict() for interval in self.intervals],
+            "name": self.name,
+            "status": self.status,
+            "week": self.week,
+        }
+        if self.rule_id is not None:
+            rule["ruleId"] = self.rule_id
+        return rule
 
 
 @dataclass(frozen=True, slots=True)
